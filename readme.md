@@ -103,85 +103,110 @@ class FacturaVeterinaria(models.Model):
 
 ## SQL
 
+-- 1. Tabla Propietario
+CREATE TABLE Propietario (
+    id INT PRIMARY KEY NOT NULL,
+    nombre VARCHAR(100) NOT NULL,
+    apellido VARCHAR(100) NOT NULL,
+    direccion VARCHAR(255) NOT NULL,
+    telefono VARCHAR(20) NOT NULL,
+    email VARCHAR(100) NOT NULL,
+    fecha_registro DATE NOT NULL,
+    dni VARCHAR(20) UNIQUE NOT NULL, -- DNI como único
+    ocupacion VARCHAR(100) NOT NULL
+);
 
-Propietario {
-	id int pk null
-	nombre varchar(100) null
-	apellido varchar(100) null
-	direccion varchar(255) null
-	telefono varchar(20) null
-	email varchar(100) null
-	fecha_registro date null
-	dni varchar(20) null
-	ocupacion varchar(100) null
-}
+---
 
-Mascota {
-	id int pk null
-	nombre_mascota varchar(100) null
-	especie varchar(50) null
-	raza varchar(50) null
-	fecha_nacimiento date null
-	genero char(1) null
-	peso_kg decimal(5,2) null
-	propietario_id int null > Propietario.id
-	chip_identificacion varchar(50) null
-	color varchar(50) null
-	esterilizado boolean null
-}
+-- 2. Tabla Veterinario
+CREATE TABLE Veterinario (
+    id INT PRIMARY KEY NOT NULL,
+    nombre VARCHAR(100) NOT NULL,
+    apellido VARCHAR(100) NOT NULL,
+    especialidad VARCHAR(100) NOT NULL,
+    telefono VARCHAR(20) NOT NULL,
+    email VARCHAR(100) NOT NULL,
+    licencia_veterinaria VARCHAR(50) UNIQUE NOT NULL, -- Licencia como única
+    fecha_contratacion DATE NOT NULL,
+    salario DECIMAL(10,2) NOT NULL
+);
 
-Veterinario {
-	id int pk null
-	nombre varchar(100) null
-	apellido varchar(100) null
-	especialidad varchar(100) null
-	telefono varchar(20) null
-	email varchar(100) null
-	licencia_veterinaria varchar(50) null
-	fecha_contratacion date null
-	salario decimal(10,2) null
-}
+---
 
-Consulta {
-	id int pk null
-	mascota_id int null > Mascota.id
-	veterinario_id int null > Veterinario.id
-	fecha_consulta datetime null
-	motivo_consulta text null
-	diagnostico text null
-	tratamiento text null
-	peso_mascota_consulta decimal(5,2) null
-	observaciones text null
-}
+-- 3. Tabla Vacuna
+CREATE TABLE Vacuna (
+    id INT PRIMARY KEY NOT NULL,
+    nombre_vacuna VARCHAR(100) NOT NULL,
+    descripcion TEXT NOT NULL,
+    laboratorio VARCHAR(100) NOT NULL,
+    fecha_vencimiento_lote DATE NOT NULL,
+    tipo_enfermedad VARCHAR(100) NOT NULL
+);
 
-Vacuna {
-	id int pk null
-	nombre_vacuna varchar(100) null
-	descripcion text null
-	laboratorio varchar(100) null
-	fecha_vencimiento_lote date null
-	tipo_enfermedad varchar(100) null
-}
+---
 
-HistorialVacunacion {
-	id int pk null
-	mascota_id int null > Mascota.id
-	vacuna_id int null > Vacuna.id
-	fecha_aplicacion date null
-	fecha_proxima_dosis date null
-	veterinario_aplico_id int null > Veterinario.id
-	numero_lote varchar(50) null
-	comentarios text null
-}
+-- 4. Tabla Mascota (Depende de Propietario)
+CREATE TABLE Mascota (
+    id INT PRIMARY KEY NOT NULL,
+    propietario_id INT NOT NULL,
+    nombre_mascota VARCHAR(100) NOT NULL,
+    especie VARCHAR(50) NOT NULL,
+    raza VARCHAR(50) NOT NULL,
+    fecha_nacimiento DATE NOT NULL,
+    genero CHAR(1) NOT NULL,
+    peso_kg DECIMAL(5,2) NOT NULL,
+    chip_identificacion VARCHAR(50) NULL, -- Campo opcional
+    color VARCHAR(50) NOT NULL,
+    esterilizado BOOLEAN NOT NULL,
+    FOREIGN KEY (propietario_id) REFERENCES Propietario(id) ON DELETE CASCADE
+);
 
-FacturaVeterinaria {
-	fecha_emision date null
-	total_factura decimal(10,2) null
-	estado_pago varchar(50) null
-	id int pk null
-	propietario_id int null > Propietario.id
-	metodo_pago varchar(50) null
-	consulta_asociada_id int null > Consulta.id
-	fecha_vencimiento date null
-}
+---
 
+-- 5. Tabla Consulta (Depende de Mascota y Veterinario)
+CREATE TABLE Consulta (
+    id INT PRIMARY KEY NOT NULL,
+    mascota_id INT NOT NULL,
+    veterinario_id INT NULL, -- Es NULLable debido a ON DELETE SET NULL en Django
+    fecha_consulta DATETIME NOT NULL,
+    motivo_consulta TEXT NOT NULL,
+    diagnostico TEXT NOT NULL,
+    tratamiento TEXT NOT NULL,
+    peso_mascota_consulta DECIMAL(5,2) NOT NULL,
+    observaciones TEXT NULL, -- Campo opcional
+    FOREIGN KEY (mascota_id) REFERENCES Mascota(id) ON DELETE CASCADE,
+    FOREIGN KEY (veterinario_id) REFERENCES Veterinario(id) ON DELETE SET NULL
+);
+
+---
+
+-- 6. Tabla HistorialVacunacion (Depende de Mascota, Vacuna y Veterinario)
+CREATE TABLE HistorialVacunacion (
+    id INT PRIMARY KEY NOT NULL,
+    mascota_id INT NOT NULL,
+    vacuna_id INT NOT NULL,
+    veterinario_aplico_id INT NULL, -- Es NULLable debido a ON DELETE SET NULL en Django
+    fecha_aplicacion DATE NOT NULL,
+    fecha_proxima_dosis DATE NULL, -- Campo opcional
+    numero_lote VARCHAR(50) NOT NULL,
+    comentarios TEXT NULL, -- Campo opcional
+    FOREIGN KEY (mascota_id) REFERENCES Mascota(id) ON DELETE CASCADE,
+    FOREIGN KEY (vacuna_id) REFERENCES Vacuna(id) ON DELETE CASCADE,
+    FOREIGN KEY (veterinario_aplico_id) REFERENCES Veterinario(id) ON DELETE SET NULL
+);
+
+---
+
+-- 7. Tabla FacturaVeterinaria (Depende de Propietario y Consulta)
+CREATE TABLE FacturaVeterinaria (
+    id INT PRIMARY KEY NOT NULL,
+    propietario_id INT NOT NULL,
+    consulta_asociada_id INT NOT NULL,
+    fecha_emision DATE NOT NULL,
+    total_factura DECIMAL(10,2) NOT NULL,
+    estado_pago VARCHAR(50) NOT NULL,
+    metodo_pago VARCHAR(50) NOT NULL,
+    fecha_vencimiento DATE NOT NULL,
+    FOREIGN KEY (propietario_id) REFERENCES Propietario(id) ON DELETE CASCADE,
+    FOREIGN KEY (consulta_asociada_id) REFERENCES Consulta(id) ON DELETE CASCADE
+);
