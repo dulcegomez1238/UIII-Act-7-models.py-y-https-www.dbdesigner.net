@@ -4,6 +4,10 @@
 <img width="1344" height="679" alt="image" src="https://github.com/user-attachments/assets/df1a22c3-c184-4803-a09e-2fcad6e49171" />
 
 
+
+
+
+
 from django.db import models
 
 
